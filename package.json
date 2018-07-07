@@ -1,0 +1,20 @@
+{
+  "name": "mostlikely.to",
+  "version": "1.0.0",
+  "description": "A fun interactive game to play with your friends",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "fun",
+    "game",
+    "interactive"
+  ],
+  "author": "Elo",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.3",
+    "socket.io": "^2.1.1"
+  }
+}
