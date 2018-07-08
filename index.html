@@ -12,8 +12,8 @@
 </head>
 <body>
 <div id="app">
-    <h1>{{message}}</h1>
-    <div v-if="state == 'join-lobby'"><join-lobby /></div>
+    <h1>{{currentView}}</h1>
+    <component :is="currentView" />
 </div>
 <script src="./js/index.js"></script>
 </body>

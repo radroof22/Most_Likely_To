@@ -12,6 +12,7 @@ class Lobby{
     constructor(){
         this.questions = []
         this.users = []
+        this.inGame = false
         // Generate Unique Code
         var foundUnique = false;
         while(!foundUnique){
@@ -60,7 +61,8 @@ io.on("connection", (socket)=>{
             socket.join(lobby.code)            
         }
         findLobbyByCode(data["roomCode"], socket)
-        io.sockets.in(lobby.code).emit("New Opponent")
+        lobby.addUser(data["username"], socket)
+        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users})
     })
 })
 
