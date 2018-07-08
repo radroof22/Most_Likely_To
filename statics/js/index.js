@@ -19,7 +19,7 @@ Vue.component("join-lobby", {
     data: function (){
         return {
             roomNumber: null,
-            username: "Xavier",
+            username: "",
             
             newServerRequest: function(){
                 console.log(this.username)
@@ -34,20 +34,26 @@ Vue.component("join-lobby", {
 Vue.component("wait-lobby", {
     template:`
     <div>
-        <h1>Wait Lobby"</h1>
-        <ul v-for="player in roster">
-            <li>{{player}}</li>
+        <h1>Wait Lobby</h1>
+        <label> Code: {{lobbyCode}}</label>
+        <ul>
+            <li v-for="player in roster">
+                {{player.username}}
+            </li>
         </ul>
     </div>
     `,
     data: function(){
         return {
-            roster: []
+            roster: [],
+            lobbyCode: null
         }
     },
     created: function(){
         socket.on("UpdatedLobbyRoster", (data) => {
-            this.roster = data
+            this.roster = data["roster"]
+            console.log(this.lobbyCode)
+            this.lobbyCode = data["lobbyCode"]
             
         })
     }

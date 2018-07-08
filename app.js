@@ -17,14 +17,14 @@ class Lobby{
         var foundUnique = false;
         while(!foundUnique){
             foundUnique = true;
-            this.roomCode = [Math.floor(Math.random()*10), 
+            this.code = [Math.floor(Math.random()*10), 
                 Math.floor(Math.random()*10), 
                 Math.floor(Math.random()*10), 
                 Math.floor(Math.random()*10), 
                 Math.floor(Math.random()*10)]
             // Checks to make sure the generated code is unique
             for(var i =0; i < lobbys.length; i++){
-                if (this.roomCode == lobbys[i].roomCode){
+                if (this.code == lobbys[i].code){
                     foundUnique = false;
                     console.log("Generated Code")
                 }
@@ -32,7 +32,7 @@ class Lobby{
             
         }
         // Convert code to string for proper room handling
-        this.roomCode = this.roomCode.join('')
+        this.code = this.code.join('')
         
     }
 
@@ -43,26 +43,30 @@ class Lobby{
 var lobbys = []
 function findLobbyByCode(code){
     for(var i =0; i < lobbys.length; i++){
-        if (code == lobbys[i].roomCode){
-            return lobby[i]
+        if (code == lobbys[i].code){
+            return lobbys[i]
         }
     }
+    return false
 }
 
 io.on("connection", (socket)=>{
     socket.on("RequestRoom", (data) => {
-        if (data["roomCode"] != null) {
+        var lobby = null;
+        if (data["code"] != null) {
             // User is joining an existing room number
-            socket.join(data["roomCode"])
+            socket.join(data["code"])
+            lobby = findLobbyByCode(data["code"], socket)
         }else{
             // User wants to create a lobby
-            var lobby = new Lobby()
+            lobby = new Lobby()
             lobbys.push(lobby)
-            socket.join(lobby.code)            
+            socket.join(lobby.code)
+
         }
-        findLobbyByCode(data["roomCode"], socket)
+        
         lobby.addUser(data["username"], socket)
-        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users})
+        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
     })
 })
 
