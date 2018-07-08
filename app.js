@@ -53,20 +53,29 @@ function findLobbyByCode(code){
 io.on("connection", (socket)=>{
     socket.on("RequestRoom", (data) => {
         var lobby = null;
+        var error = false;
         if (data["code"] != null) {
+            console.log("Joining")
             // User is joining an existing room number
             socket.join(data["code"])
             lobby = findLobbyByCode(data["code"], socket)
+            
+            //if the lobby code is invalid
+            if (lobby == false){
+                error = true
+                socket.emit("Invalid Code");
+            }else {error = false;}
         }else{
             // User wants to create a lobby
             lobby = new Lobby()
             lobbys.push(lobby)
             socket.join(lobby.code)
-
+            error = false;
         }
-        
-        lobby.addUser(data["username"], socket)
-        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
+        if (error == false){
+            lobby.addUser(data["username"], socket)
+            io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
+        }
     })
 })
 

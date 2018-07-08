@@ -20,15 +20,27 @@ Vue.component("join-lobby", {
         return {
             roomNumber: null,
             username: "",
+            invalidCode:false,
             
             newServerRequest: function(){
-                console.log(this.username)
+                this.invalidCode = false;
                 socket.emit("RequestRoom", {"code":this.roomNumber, "username": this.username});
-                app.currentView = "wait-lobby"
+                socket.on("Invalid Code", ()=>{
+                    this.invalidCode = true;
+                    alert("Invalid Code")
+                    app.currentView = "join-lobby"
+                })
+                if (this.invalidCode == false){app.currentView = "wait-lobby"}
             }
 
         }
+    },
+
+    mounted: function(){
+        
+        
     }
+    
 })
 
 Vue.component("wait-lobby", {
