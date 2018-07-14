@@ -8,10 +8,21 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname+"/index.html")
 })
 
+var lobbys = []
+function findLobbyByCode(code){
+    for(var i =0; i < lobbys.length; i++){
+        if (code == lobbys[i].code){
+            return lobbys[i]
+        }
+    }
+    return false
+}
+
 class Lobby{
     constructor(){
         this.questions = []
         this.users = []
+        this.readyUsers;
         this.inGame = false
         // Generate Unique Code
         var foundUnique = false;
@@ -37,25 +48,40 @@ class Lobby{
     }
 
     addUser(username, socket){
+        // Add user to roster
         this.users.push({"socket": socket.id, "username": username})
-    }
-}
-var lobbys = []
-function findLobbyByCode(code){
-    for(var i =0; i < lobbys.length; i++){
-        if (code == lobbys[i].code){
-            return lobbys[i]
+        // Reset user readiness array with new user
+        this.readyUsers = []
+        for(var i = 0; i < this.users.length; i++){
+            this.readyUsers.push({
+                "username":this.users[i]["username"], 
+                "_ready": false,
+            })
         }
     }
-    return false
+
+    readyUser(username){
+        // Set user to true for ready
+        for(var i = 0; i < this.readyUsers.length; i++){
+            if (this.readyUsers[i]['username'] == username){
+                this.readyUsers[i]["_ready"] = true
+            }
+        }
+        var allReady = true
+        for(var i = 0; i < this.readyUsers.length; i++){
+            if (this.readyUsers[i]['_ready'] == false){
+                allReady = false
+            }
+        }
+    }
 }
+
 
 io.on("connection", (socket)=>{
     socket.on("RequestRoom", (data) => {
         var lobby = null;
         var error = false;
         if (data["code"] != null) {
-            console.log("Joining")
             // User is joining an existing room number
             socket.join(data["code"])
             lobby = findLobbyByCode(data["code"], socket)
@@ -63,8 +89,8 @@ io.on("connection", (socket)=>{
             //if the lobby code is invalid
             if (lobby == false){
                 error = true
-                socket.emit("Invalid Code");
-            }else {error = false;}
+                socket.emit("Invalid Code", {"state": true});
+            }else {error = false}
         }else{
             // User wants to create a lobby
             lobby = new Lobby()
@@ -76,6 +102,14 @@ io.on("connection", (socket)=>{
             lobby.addUser(data["username"], socket)
             io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
         }
+    })
+    socket.on("ReadyUp", (data) => {
+        _username = data["username"]
+        _lobbyCode = data["lobbyCode"]
+        // Search Lobbys
+        findLobbyByCode(_lobbyCode).readyUser(_username)
+        
+        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
     })
 })
 

@@ -1,4 +1,20 @@
-var socket = null;
+var store = {
+    state : {
+        Username: "",
+        RoomNumber: null,
+        Socket: null,
+    },
+    setSocket(ioInstance){
+        this.state.Socket = ioInstance
+    },
+    setUsername(newName){
+        this.state.Username = newName
+    },
+    setRoomNumber(newNumber){
+        this.state.RoomNumber = newNumber
+    },
+}
+
 Vue.component("join-lobby", {
     template: `
     <div>
@@ -24,29 +40,28 @@ Vue.component("join-lobby", {
             
             newServerRequest: function(){
                 this.invalidCode = false;
-                socket.emit("RequestRoom", {"code":this.roomNumber, "username": this.username});
-                socket.on("Invalid Code", ()=>{
+                store.state.Socket.emit("RequestRoom", {"code":this.roomNumber, "username": this.username});
+                store.state.Socket.on("Invalid Code", ()=>{
                     this.invalidCode = true;
                     alert("Invalid Code")
                     app.currentView = "join-lobby"
                 })
-                if (this.invalidCode == false){app.currentView = "wait-lobby"}
+                if (this.invalidCode == false){
+                    // Returned official state that the user has created or joined new lobby
+                    store.setUsername(this.username)                 
+                    app.currentView = "wait-lobby"
+                }
             }
 
         }
-    },
-
-    mounted: function(){
-        
-        
-    }
-    
+    },   
 })
 
 Vue.component("wait-lobby", {
     template:`
     <div>
         <h1>Wait Lobby</h1>
+        <button @click='readyUp'>Ready Up</button>
         <label> Code: {{lobbyCode}}</label>
         <ul>
             <li v-for="player in roster">
@@ -62,12 +77,20 @@ Vue.component("wait-lobby", {
         }
     },
     created: function(){
-        socket.on("UpdatedLobbyRoster", (data) => {
+        store.state.Socket.on("UpdatedLobbyRoster", (data) => {
             this.roster = data["roster"]
-            console.log(this.lobbyCode)
+            // Update lobby code state 
             this.lobbyCode = data["lobbyCode"]
-            
+            store.setRoomNumber(this.lobbyCode)
         })
+    },
+    methods: function(){
+        return {
+            readyUp(){
+                // Tell the Server that client is ready
+                store.state.Socket.emit("ReadyUp", {"lobbyCode":store.state.RoomNumber, "username":store.state.Username})
+            }
+        }
     }
 })
 
@@ -88,8 +111,6 @@ var app = new Vue({
         }
     },
     created: function(){
-        socket = io();
+        store.setSocket(io());
     },
-    mounted: function(){
-    }
 });
