@@ -73,6 +73,9 @@ class Lobby{
                 allReady = false
             }
         }
+        if(this.readyUsers>=1) {
+            console.log("Lobby Ready")
+        }
     }
 }
 
@@ -100,16 +103,17 @@ io.on("connection", (socket)=>{
         }
         if (error == false){
             lobby.addUser(data["username"], socket)
-            io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
+            io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.readyUsers, "lobbyCode":lobby.code})
         }
     })
     socket.on("ReadyUp", (data) => {
         _username = data["username"]
         _lobbyCode = data["lobbyCode"]
         // Search Lobbys
-        findLobbyByCode(_lobbyCode).readyUser(_username)
+        var lobby = findLobbyByCode(_lobbyCode)
+        lobby.readyUser(_username)
         
-        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.users, "lobbyCode":lobby.code})
+        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.readyUsers, "lobbyCode":lobby.code})
     })
 })
 

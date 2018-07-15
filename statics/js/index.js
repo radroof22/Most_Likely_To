@@ -17,18 +17,34 @@ var store = {
 
 Vue.component("join-lobby", {
     template: `
-    <div>
-        <form @submit.prevent="newServerRequest">
-            <input v-model="username" placeholder="Username" />
-            <input v-model="roomNumber" placeholder="5 Digit Code (Optional)" type="number" />
-            <button type="submit">
-                <div v-if="roomNumber == null || roomNumber == '' ">
-                    Create Server
+    <div id="main" class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Mostlikely.to</h1>
+            <p class="lead"> Join your friends and get a lobby to play a game and understand what they think about you! One person should enter without a digital code to create a lobby, and the rest should join that persons lobby using their code.
+            <hr class="my-4">
+            <form @submit.prevent="newServerRequest">
+                <div class="form-group">
+                    <label for="usernameEntry">Username </label>
+                    <input class="form-control" id="usernameEntry" v-model="username" placeholder="Enter Username" />
+                    <small class="form-text text-muted">This will be the name that everyone will see during the game</small>
                 </div>
-                <div v-else>
-                    Join Server
-                </div></button>
-        </form>
+                <div class="form-group">
+                    <label for="codeEntry">Code </label>
+                    <input id="codeEntry" class="form-control" v-model="roomNumber" placeholder="Enter Code" type="number" />
+                    <small class="form-text text-muted">The code will be 5 digits long. If you are creating a lobby, leave this section blank and you can share your lobby's code on the next page.</small>
+                </div>
+                
+                
+                <button type="submit">
+                    <div v-if="roomNumber == null || roomNumber == '' ">
+                        Create Server
+                    </div>
+                    <div v-else>
+                        Join Server
+                    </div>
+                </button>
+            </form>
+        </div>
     </div>
     `,
 
@@ -59,39 +75,43 @@ Vue.component("join-lobby", {
 
 Vue.component("wait-lobby", {
     template:`
-    <div>
-        <h1>Wait Lobby</h1>
-        <button @click='readyUp'>Ready Up</button>
-        <label> Code: {{lobbyCode}}</label>
-        <ul>
-            <li v-for="player in roster">
-                {{player.username}}
-            </li>
-        </ul>
+    <div class=" jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Lobby <strong>{{lobbyCode}}</strong></h1>
+            <p class="lead">Make sure you ready up to have the game start. Once all of the users in the lobby ready up, the game will begin. If the lobby only has one person, it will require a second person to join and ready for the game to start</p>
+            <button @click='readyUp'type="button" class="btn btn-primary">Ready Up</button>
+            <hr class="my-4">
+            <br/>
+            <ul class="list-group">
+                <li v-for="player in roster" class="list-group-item d-flex justify-content-between align-items-center">
+                    {{player.username}} <div v-if="player['_ready']"> <span class="badge badge-primary badge-pill">Ready</span> </div>
+                </li>
+            </ul>
+        </div>
     </div>
     `,
     data: function(){
         return {
             roster: [],
-            lobbyCode: null
+            lobbyCode: null,
+
+            readyUp(){
+                // Tell the Server that client is ready
+                store.state.Socket.emit("ReadyUp", 
+                    {"lobbyCode":store.state.RoomNumber, 
+                    "username":store.state.Username})
+            }
         }
     },
-    created: function(){
+    mounted: function(){
         store.state.Socket.on("UpdatedLobbyRoster", (data) => {
             this.roster = data["roster"]
             // Update lobby code state 
+            console.log("Updated")
             this.lobbyCode = data["lobbyCode"]
             store.setRoomNumber(this.lobbyCode)
         })
     },
-    methods: function(){
-        return {
-            readyUp(){
-                // Tell the Server that client is ready
-                store.state.Socket.emit("ReadyUp", {"lobbyCode":store.state.RoomNumber, "username":store.state.Username})
-            }
-        }
-    }
 })
 
 var app = new Vue({
