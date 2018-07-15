@@ -73,9 +73,35 @@ class Lobby{
                 allReady = false
             }
         }
-        if(this.readyUsers>=1) {
-            console.log("Lobby Ready")
+        if(this.readyUsers.length>=1 && allReady == true) {
+            return allReady
+        }else{
+            return false
         }
+    }
+
+    getPeople(){
+        var rosterToSend = []
+        for(var i = 0; i < this.users.length; i++){
+            rosterToSend.push({i:this.users[i]["username"]})
+        }
+        return rosterToSend
+    }
+
+    addQuestions(firstQ, secondQ){
+        this.questions.push(firstQ)
+        this.questions.push(secondQ)
+        
+        if (this.questions.length == this.users.length * 2){
+            return true
+        }
+    }
+
+    getRandomQuestion(){
+        var index = Math.floor(Math.random()*this.questions.length)
+        var question = this.questions[index]
+        this.questions.pop(index)
+        return question
     }
 }
 
@@ -111,9 +137,21 @@ io.on("connection", (socket)=>{
         _lobbyCode = data["lobbyCode"]
         // Search Lobbys
         var lobby = findLobbyByCode(_lobbyCode)
-        lobby.readyUser(_username)
-        
-        io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.readyUsers, "lobbyCode":lobby.code})
+        lobbyReady = lobby.readyUser(_username)
+        if(lobbyReady == true){
+            io.sockets.in(lobby.code).emit("FinalLobbyRoster", {"roster":lobby.getPeople()})
+        }else{
+            io.sockets.in(lobby.code).emit("UpdatedLobbyRoster", {"roster":lobby.readyUsers, "lobbyCode":lobby.code})
+        }
+    })
+    socket.on("ProposeQuestions", (data) => {
+        firstQ = data["firstQ"]
+        secondQ = data['secondQ']
+        lobby = findLobbyByCode(data["lobbyCode"])
+        qProposalFinish = lobby.addQuestions(firstQ, secondQ)
+        if (qProposalFinish){
+            io.sockets.in(lobby.code).emit("SendQuestion", {"question": lobby.getRandomQuestion()})
+        }
     })
 })
 

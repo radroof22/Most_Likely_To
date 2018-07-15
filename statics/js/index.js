@@ -3,6 +3,8 @@ var store = {
         Username: "",
         RoomNumber: null,
         Socket: null,
+        FinalRoster: null,
+        currentQuestion: null
     },
     setSocket(ioInstance){
         this.state.Socket = ioInstance
@@ -13,6 +15,12 @@ var store = {
     setRoomNumber(newNumber){
         this.state.RoomNumber = newNumber
     },
+    setFinalRoster(roster){
+        this.state.FinalRoster = roster
+    },
+    setQuestion(question){
+        this.currentQuestion = question
+    }
 }
 
 Vue.component("join-lobby", {
@@ -94,7 +102,6 @@ Vue.component("wait-lobby", {
         return {
             roster: [],
             lobbyCode: null,
-
             readyUp(){
                 // Tell the Server that client is ready
                 store.state.Socket.emit("ReadyUp", 
@@ -107,13 +114,77 @@ Vue.component("wait-lobby", {
         store.state.Socket.on("UpdatedLobbyRoster", (data) => {
             this.roster = data["roster"]
             // Update lobby code state 
-            console.log("Updated")
             this.lobbyCode = data["lobbyCode"]
             store.setRoomNumber(this.lobbyCode)
+        })
+        // If Lobby is finished and everyone is ready
+        store.state.Socket.on("FinalLobbyRoster", (data) => {
+            store.setFinalRoster(data["roster"])
+            app.currentView = "propose-questions"
         })
     },
 })
 
+Vue.component("propose-questions", {
+    template:`
+    <div class="jumbotron-fluid">
+        <div class="container-fluid">
+            <h1 class="display-4">Propose Questions</h1>
+            <p class="lead">The questions you write will be the questions that others will answer in the game. Make sure the questions are typed correctly and make sure to press the submit button.</p>
+            <hr class="my-4">
+            <form @submit.prevent="proposeQuestions" v-show='proposing'>
+                <div class="form-group">
+                    <label for="firstQ">First Question </label>
+                    <input class="form-control" id="firstQ" v-model="firstQuestion" placeholder="First Question" type="text"/>
+                </div>
+                <div class="form-group">
+                    <label for="secondQ">Second Question</label>
+                    <input id="secondQ" class="form-control" v-model="secondQuestion" placeholder="Second Question" type="text" />
+                </div>
+                
+                
+                <button type="submit" class="btn btn-lg btn-success">Submit Questions</button>
+            </form>
+            <div v-show="!proposing">
+                <p>Please wait for the others to finish up with their questions</p>
+            </div>
+            <br/>
+            <ul class="list-group">
+                <li class="list-group-item" v-for="person in this.roster">{{person.i}}</li>
+            </ul>
+        </div>
+    </div>
+    `,
+    data: function(){
+        return {
+            roster: store.state.FinalRoster,
+            firstQuestion: "",
+            secondQuestion:"",
+            proposing: true,
+            proposeQuestions(){
+                store.state.Socket.emit("ProposeQuestions", {"lobbyCode": store.state.RoomNumber, "firstQ":this.firstQuestion, "secondQ": this.secondQuestion})
+                this.proposing = false
+            }
+        }
+    },
+    mounted: function(){
+        store.state.Socket.on("SendQuestion", (data)=>{
+            store.setQuestion(data["question"])
+            app.currentView = "AnswerQuestion"
+        })
+    },
+})
+
+Vue.component("AnswerQuestion", {
+    template: `
+    <h1> AnswerQuestion</h1>
+    `
+})
+Vue.component("PresentResult", {
+    template: `
+    <h1> Answer Question </h1>
+    `
+})
 var app = new Vue({
     el: "#app",
     data: {
