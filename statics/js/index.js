@@ -4,10 +4,13 @@ var store = {
         RoomNumber: null,
         Socket: null,
         FinalRoster: null,
-        currentQuestion: null
+        currentQuestion: null,
+        winningUser: null,
+        waitTime: 3000,
+        finalGameResults: [],
     },
-    setSocket(ioInstance){
-        this.state.Socket = ioInstance
+    setSocket(socketInstance){
+        this.state.Socket = socketInstance
     },
     setUsername(newName){
         this.state.Username = newName
@@ -19,8 +22,14 @@ var store = {
         this.state.FinalRoster = roster
     },
     setQuestion(question){
-        this.currentQuestion = question
-    }
+        this.state.currentQuestion = question
+    },
+    setWinningUser(user){
+        this.state.winningUser = user;
+    },
+    setFinalGameResults(results){
+        this.state.finalGameResults = results;
+    },
 }
 
 Vue.component("join-lobby", {
@@ -150,7 +159,7 @@ Vue.component("propose-questions", {
             </div>
             <br/>
             <ul class="list-group">
-                <li class="list-group-item" v-for="person in this.roster">{{person.i}}</li>
+                <li class="list-group-item" v-for="person in this.roster">{{person.username}}</li>
             </ul>
         </div>
     </div>
@@ -177,14 +186,94 @@ Vue.component("propose-questions", {
 
 Vue.component("AnswerQuestion", {
     template: `
-    <h1> AnswerQuestion</h1>
-    `
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container-fluid">
+            <h1 class="display-4">Question: "{{this.question}}"</h1>
+            <p class="lead">Press one of the people's name to vote for who you think is most likely to do this.</p>
+            <hr class="my-4">
+            <ul class="list-group">
+                <li class="list-group-item" v-for="person in roster" v-on:click="voteFor(person.username)"><span v-show="votedFor == person.username" class="badge badge-light">Chosen</span>{{person["username"]}}</li>
+            </ul>
+        </div>
+    </div>
+    `,
+    data: function(){
+        return {
+            roster: store.state.FinalRoster,
+            question: store.state.currentQuestion,
+            votedFor: null,
+            votingLocked: false,
+        }
+    },
+    methods: {
+        voteFor:function(person){
+            this.votedFor = person
+            console.log("Declaring vote")
+            store.state.Socket.emit("DeclareVote", {"votedFor": person, "lobbyCode": store.state.RoomNumber})
+        }
+    },
+    mounted: function(){
+        store.state.Socket.on("SendWinner", (data) => {
+            store.setWinningUser(data["winningUser"])
+            app.currentView = "PresentResult"
+        })
+        
+    }
 })
 Vue.component("PresentResult", {
     template: `
-    <h1> Answer Question </h1>
-    `
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container-fluid">
+            <h1 class="display-4"><strong>{{this.winner.username}}</strong> with <strong>{{this.winner.votes}}</strong></h1>
+            <p class="lead">Winner of Question: "{{this.question}}"</p>
+            
+        </div>
+    </div>
+    `,
+    data: function(){
+        return {
+            question: store.state.currentQuestion,
+            winner: store.state.winningUser
+        }
+    },
+    mounted: function(){
+        if(this.winner["username"] == store.state.Username){
+            // Let winner handle the requesting for another person
+            setTimeout(() => {
+                // Request a question
+                store.state.Socket.emit("AnotherQuestion", {'lobbyCode': store.state.RoomNumber})
+            }, store.state.waitTime);
+        }
+        store.state.Socket.on("SendQuestion", (data) => {
+            store.setQuestion(data["question"])
+            app.currentView = "AnswerQuestion";
+        })
+        store.state.Socket.on("GameFinished", (data) => {
+            console.log("Game Finished")
+            store.setFinalGameResults(data["results"])
+            app.currentView = "GameFinished"
+        })
+    }
 })
+
+Vue.component("GameFinished", {
+    template: `
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container-fluid">
+            <p>{{finalGame}}</p>
+        </div>
+    </div>
+    `,
+    data: function(){
+        return {
+            finalGame: store.state.finalGameResults
+        }
+    },
+})
+
+
+
+
 var app = new Vue({
     el: "#app",
     data: {

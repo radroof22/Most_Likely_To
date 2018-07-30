@@ -24,6 +24,9 @@ class Lobby{
         this.users = []
         this.readyUsers;
         this.inGame = false
+        this.questionTracker = []
+        this.historicalRounds = []
+        this.roundWins = []
         // Generate Unique Code
         var foundUnique = false;
         while(!foundUnique){
@@ -37,10 +40,8 @@ class Lobby{
             for(var i =0; i < lobbys.length; i++){
                 if (this.code == lobbys[i].code){
                     foundUnique = false;
-                    console.log("Generated Code")
                 }
             }
-            
         }
         // Convert code to string for proper room handling
         this.code = this.code.join('')
@@ -56,8 +57,14 @@ class Lobby{
             this.readyUsers.push({
                 "username":this.users[i]["username"], 
                 "_ready": false,
+                "votes": 0,
             })
         }
+        // Create historical question tracker
+        this.historicalRounds.push({
+            "username": username,
+            "roundsWon": 0,
+        })
     }
 
     readyUser(username){
@@ -83,7 +90,7 @@ class Lobby{
     getPeople(){
         var rosterToSend = []
         for(var i = 0; i < this.users.length; i++){
-            rosterToSend.push({i:this.users[i]["username"]})
+            rosterToSend.push({'username':this.users[i]["username"]})
         }
         return rosterToSend
     }
@@ -96,12 +103,57 @@ class Lobby{
             return true
         }
     }
-
+    createQuestionTracker(){
+        this.questionTracker = [];
+        for(var i = 0; i < this.users.length; i++){
+            this.questionTracker.push({
+                "username":this.users[i]["username"],
+                "votes":0
+            })
+        }
+    }
     getRandomQuestion(){
+        if (this.questions.length == 0){
+            // If lobby has played all of the questions
+            //      1. return game results 
+            //      2. destroy lobby instance
+            return null
+        }
         var index = Math.floor(Math.random()*this.questions.length)
         var question = this.questions[index]
         this.questions.pop(index)
+        this.createQuestionTracker()
         return question
+    }
+    registerWinner(winner){
+        for (var i = 0; i < this.historicalRounds.length; i++){
+            if (this.historicalRounds[i].username == winner.username){
+                this.historicalRounds[i]["roundsWon"]++;
+            }
+        }
+        console.log(this.historicalRounds)
+    }
+    handleVote(username){
+        for(var i = 0; i < this.questionTracker.length; i++){
+            if(this.questionTracker[i]["username"] == username){
+                this.questionTracker[i]["votes"] += 1
+            }
+        }
+        // Check if all people have voted
+        var total_votes = 0
+        for(var i=0; i < this.questionTracker.length; i++){
+            total_votes += this.questionTracker[i]["votes"]
+        }
+        // If all votes counted
+        if(total_votes == this.users.length){
+            // Reduce function which finds the user in 'questiontracker' with the highest number of votes
+            const maxVotedFor = this.questionTracker.reduce( (prev, current) => {
+                return (prev.votes > current.votes) ? prev : current;
+            })
+            this.registerWinner(maxVotedFor)
+            return maxVotedFor
+        }
+        return false
     }
 }
 
@@ -153,6 +205,27 @@ io.on("connection", (socket)=>{
             io.sockets.in(lobby.code).emit("SendQuestion", {"question": lobby.getRandomQuestion()})
         }
     })
+    socket.on("DeclareVote", (data) => {
+        var userVotedFor = data["votedFor"]
+        var lobby = findLobbyByCode(data["lobbyCode"])
+        var max_voted = lobby.handleVote(userVotedFor)
+        if(max_voted){
+            io.sockets.in(lobby.code).emit("SendWinner", {"winningUser": max_voted})
+        }
+    })
+    socket.on("AnotherQuestion", (data) => {
+        var lobby = findLobbyByCode(data["lobbyCode"]);
+        // Send question to all members of party
+        var question = lobby.getRandomQuestion()
+        if(question == null){
+            io.sockets.in(lobby.code).emit("GameFinished", 
+                {"results": lobby.historicalRounds})
+        }else{
+            io.sockets.in(lobby.code).emit("SendQuestion", 
+                {"question": question})
+        }
+    })
+
 })
 
 http.listen(3000, ()=> console.log("The website is running"))
