@@ -32,6 +32,13 @@ var store = {
     },
 }
 
+function isAlphanumeric( str ) {
+    return /^[0-9a-zA-Z]+$/.test(str);
+}
+function isText(str){
+    return str.trim().length > 0;
+}
+
 Vue.component("join-lobby", {
     template: `
     <div id="main" class="jumbotron jumbotron-fluid">
@@ -43,7 +50,7 @@ Vue.component("join-lobby", {
                 <div class="form-group">
                     <label for="usernameEntry">Username </label>
                     <input class="form-control" id="usernameEntry" v-model="username" placeholder="Enter Username" />
-                    <small class="form-text text-muted">This will be the name that everyone will see during the game</small>
+                    <small class="form-text text-muted">This will be the name that everyone will see during the game. It also must contain at least one alphanumeric character.</small>
                 </div>
                 <div class="form-group">
                     <label for="codeEntry">Code </label>
@@ -73,16 +80,18 @@ Vue.component("join-lobby", {
             
             newServerRequest: function(){
                 this.invalidCode = false;
-                store.state.Socket.emit("RequestRoom", {"code":this.roomNumber, "username": this.username});
-                store.state.Socket.on("Invalid Code", ()=>{
-                    this.invalidCode = true;
-                    alert("Invalid Code")
-                    app.currentView = "join-lobby"
-                })
-                if (this.invalidCode == false){
-                    // Returned official state that the user has created or joined new lobby
-                    store.setUsername(this.username)                 
-                    app.currentView = "wait-lobby"
+                if (isAlphanumeric(this.username)){
+                    store.state.Socket.emit("RequestRoom", {"code":this.roomNumber, "username": this.username});
+                    store.state.Socket.on("Invalid Code", ()=>{
+                        this.invalidCode = true;
+                        alert("Invalid Code")
+                        app.currentView = "join-lobby"
+                    })
+                    if (this.invalidCode == false){
+                        // Returned official state that the user has created or joined new lobby
+                        store.setUsername(this.username)                 
+                        app.currentView = "wait-lobby"
+                    }
                 }
             }
 
@@ -99,6 +108,7 @@ Vue.component("wait-lobby", {
             <button @click='readyUp'type="button" class="btn btn-primary">Ready Up</button>
             <hr class="my-4">
             <br/>
+            <p v-show="roster.length < 2"><strong>Lobby Must Have More than 1 Participant</strong></p>
             <ul class="list-group">
                 <li v-for="player in roster" class="list-group-item d-flex justify-content-between align-items-center">
                     {{player.username}} <div v-if="player['_ready']"> <span class="badge badge-primary badge-pill">Ready</span> </div>
@@ -139,7 +149,7 @@ Vue.component("propose-questions", {
     <div class="jumbotron-fluid">
         <div class="container-fluid">
             <h1 class="display-4">Propose Questions</h1>
-            <p class="lead">The questions you write will be the questions that others will answer in the game. Make sure the questions are typed correctly and make sure to press the submit button.</p>
+            <p class="lead">The questions you write will be the questions that others will answer in the game. Make sure the questions are typed correctly and make sure to press the submit button. Ensure that all of your questions have at least one character in them for them to be submitted</p>
             <hr class="my-4">
             <form @submit.prevent="proposeQuestions" v-show='proposing'>
                 <div class="form-group">
@@ -171,8 +181,12 @@ Vue.component("propose-questions", {
             secondQuestion:"",
             proposing: true,
             proposeQuestions(){
-                store.state.Socket.emit("ProposeQuestions", {"lobbyCode": store.state.RoomNumber, "firstQ":this.firstQuestion, "secondQ": this.secondQuestion})
-                this.proposing = false
+                console.log(isText(this.firstQuestion))
+                console.log(isText(this.secondQuestion))
+                if(isText(this.firstQuestion) && isText(this.secondQuestion)){
+                    store.state.Socket.emit("ProposeQuestions", {"lobbyCode": store.state.RoomNumber, "firstQ":this.firstQuestion, "secondQ": this.secondQuestion})
+                    this.proposing = false
+                }
             }
         }
     },
@@ -260,13 +274,27 @@ Vue.component("GameFinished", {
     template: `
     <div class="jumbotron jumbotron-fluid">
         <div class="container-fluid">
-            <p>{{finalGame}}</p>
+            <h1 class="heading"> Results </h1> 
+            <hr/>
+            <div class="card" style="width: 18rem;">
+                <ol class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center" v-for="person in winners">
+                        {{person.username}}
+                        <span class="badge badge-success badge-pill">{{person.roundsWon}}</span>
+                    </li>
+                </ol>
+            </div>
         </div>
     </div>
+    <style>
+    </style>
     `,
     data: function(){
         return {
-            finalGame: store.state.finalGameResults
+            finalGame: store.state.finalGameResults,
+            winners: (store.state.finalGameResults.sort((a, b) => {
+                return a.roundsWon - b.roundsWon;
+            })).reverse()
         }
     },
 })
