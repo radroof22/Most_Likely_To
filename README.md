@@ -14,3 +14,4 @@ To serve one webpage, I used ExpressJS, and Socket.io handled all other client-s
 Part of my implementation in the project is that two people cannot get a point in a round, and instead the first voted for person will recieve the point for the round, this may be something to change in the future.
 
 Some questions may not show up. I tested this many times and couldn't seem to replicate the problem.
+The `.vscode` folder is for a debugging state that any one using vscode can press `F5` to run the server from VSCode.
