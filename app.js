@@ -240,4 +240,4 @@ io.on("connection", (socket)=>{
 
 })
 
-http.listen(3000, ()=> console.log("The website is running"))
+http.listen(3000, '0.0.0.0', ()=> console.log("The website is running"))
