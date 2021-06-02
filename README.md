@@ -1,7 +1,17 @@
 # Mostlikely.to
-This is a project that I wanted to make inspired from games like "Jack in the Box Partypack" and "Kahoot". 
-The website was made with Socket.io, NodeJS, and VueJS. To be able to run this locally, make sure to `npm install` for the dependencies and use `npm start` to run the server.
-Feel free to edit this project how evey you would like.
+This game was created to replicate the technology base of "Jack in the Box Partypack" and "Kahoot", livestreaming, interactive games amongs member groups. Instead of quiz questions or deeply interactive games like Kahoot and "Jack", respectively, Mostlikely.to is a simple game of allowing users to create their own questions and vote on which members of their lobby are most likely to do it.
+
+## Run Yourself
+After git cloning, the repository, 
+`npm install` in order to install the dependiences
+and `npm start` to start the server.
+
+## Technology Stack
+The technology stack revolved around 
+- **NodeJS** to host and serve the static HTML, CSS, and Javascript files 
+- **Socket.io** to act as web socket connection between server hosting all game data and client
+- **VueJS** responsible for making an interactive user experience for the users
+
 ## VueJS
 For VueJS, I used multiple components in the single file which made the code a little bit messy. The first component will either make a lobby or join a lobby, followed by a component that requires all of the users to say they are ready before beginning the game.
 The next component will send all of the proposed questiosn to the server where they will be stored for the remaining time. Once all users have sent their question, the game will begin.
