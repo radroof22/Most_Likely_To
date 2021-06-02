@@ -240,4 +240,4 @@ io.on("connection", (socket)=>{
 
 })
 
-http.listen(process.env.PORT || 3000, app.settings.env, ()=> console.log("The website is running"))
+http.listen(3000,  ()=> console.log("The website is running"))
