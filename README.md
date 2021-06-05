@@ -1,5 +1,5 @@
 # Mostlikely.to
-This game was created to replicate the technology base of "Jack in the Box Partypack" and "Kahoot", livestreaming, interactive games amongs member groups. Instead of quiz questions or deeply interactive games like Kahoot and "Jack", respectively, Mostlikely.to is a simple game of allowing users to create their own questions and vote on which members of their lobby are most likely to do it.
+This game was created to replicate the technology base of 'Jack in the Box Partypack' and 'Kahoot', livestreaming, interactive games amongs member groups. Instead of quiz questions or deeply interactive games like Kahoot and 'Jack', respectively, Mostlikely.to is a simple game of allowing users to create their own questions and vote on which members of their lobby are most likely to do it. The project uses Socket.io web sockets to have live communication between the users and the server hosting the game and lobby. The frontend is then rendered using Vue.js to handle state management on the frontend so no user data is confused or lost for the client.
 
 ## Run Yourself
 After git cloning, the repository, 
